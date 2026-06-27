@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import CompartirEnlace from './CompartirEnlace';
 
 export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) {
   const [citasHoy, setCitasHoy] = useState([]);
@@ -8,6 +9,8 @@ export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) 
   const [porcentajeEficiencia, setPorcentajeEficiencia] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [confirmarCancelacion, setConfirmarCancelacion] = useState({ mostrar: false, citaId: null, pacienteNombre: '' });
+  const [mostrarCompartir, setMostrarCompartir] = useState(false);
+  const [citaActual, setCitaActual] = useState(null);
 
   const cargarMetricasDashboard = async () => {
     if (!medico?.id) return;
@@ -63,8 +66,12 @@ export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) 
     momentoCita.setHours(horas, minutos, 0, 0);
 
     const diferenciaMinutos = (momentoCita - ahora) / (1000 * 60);
-    // Ventana de tiempo: 10 minutos antes y hasta 45 minutos después
     return diferenciaMinutos <= 10 && diferenciaMinutos >= -45;
+  };
+
+  const manejarCompartirEnlace = (cita) => {
+    setCitaActual(cita);
+    setMostrarCompartir(true);
   };
 
   useEffect(() => {
@@ -105,6 +112,15 @@ export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal para Compartir Enlace */}
+      {mostrarCompartir && citaActual && (
+        <CompartirEnlace 
+          meetingId={citaActual.id} 
+          pacienteNombre={citaActual.paciente_nombre}
+          onClose={() => setMostrarCompartir(false)}
+        />
       )}
 
       {/* Banner de Bienvenida */}
@@ -191,14 +207,22 @@ export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) 
                       <td className="py-3 text-center">
                         {cita.estado === 'Pendiente' ? (
                           <div className="flex items-center justify-center gap-1.5">
-                            {/* 🎥 Si es una consulta virtual e inminente, mostramos el disparador del SDK */}
                             {inminente ? (
-                              <button 
-                                onClick={() => iniciarLlamada(cita.id)} 
-                                className="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-md transition whitespace-nowrap animate-bounce"
-                              >
-                                🎥 Conectarse
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => iniciarLlamada(cita.id)} 
+                                  className="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-md transition whitespace-nowrap animate-bounce"
+                                >
+                                  🎥 Conectarse
+                                </button>
+                                <button 
+                                  onClick={() => manejarCompartirEnlace(cita)} 
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2 py-1.5 rounded-lg text-[10px] transition whitespace-nowrap"
+                                  title="Compartir enlace con el paciente"
+                                >
+                                  🔗
+                                </button>
+                              </div>
                             ) : (
                               <button onClick={() => cambiarEstadoCita(cita.id, 'Completada')} className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] shadow-sm transition">✅ Completar</button>
                             )}

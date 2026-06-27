@@ -1,8 +1,7 @@
 // src/ParticipantGrid.jsx
 import React from "react";
-import ParticipantView from "./ParticipantView"; // Asegúrate de que la importación sea limpia
+import ParticipantView from "./ParticipantView";
 
-// Componente memorizado para evitar que el cuadro de un participante parpadee si el otro se mueve
 const MemoizedParticipant = React.memo(
   ParticipantView,
   (prevProps, nextProps) => {
@@ -11,46 +10,50 @@ const MemoizedParticipant = React.memo(
 );
 
 export default function ParticipantGrid({ participantIds }) {
-  // Evaluamos directamente si es un dispositivo pequeño de forma nativa
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
 
-  // Calculamos la distribución de la rejilla según la cantidad de participantes activos
-  const perRow = isMobile
-    ? participantIds.length < 4
-      ? 1
-      : 2
-    : participantIds.length < 5
-    ? 2
-    : 3;
+  // Distribución de la rejilla según cantidad de participantes
+  let perRow;
+  if (isMobile) {
+    perRow = participantIds.length <= 2 ? 1 : 2;
+  } else {
+    if (participantIds.length === 1) perRow = 1;
+    else if (participantIds.length === 2) perRow = 2;
+    else perRow = 2; // Máximo 2 columnas para mejor visibilidad
+  }
+
+  const rows = Math.ceil(participantIds.length / perRow);
 
   return (
-    <div className="flex flex-col md:flex-row flex-grow m-3 items-center justify-center min-h-[400px] w-full">
-      <div className="flex flex-col w-full h-full gap-4 justify-center items-center">
-        {Array.from(
-          { length: Math.ceil(participantIds.length / perRow) },
-          (_, i) => {
-            return (
+    <div className="flex flex-col w-full h-full gap-3 p-2">
+      {Array.from({ length: rows }, (_, rowIndex) => {
+        const start = rowIndex * perRow;
+        const end = Math.min(start + perRow, participantIds.length);
+        const rowParticipants = participantIds.slice(start, end);
+
+        return (
+          <div
+            key={`row-${rowIndex}`}
+            className="flex flex-row gap-3 w-full flex-1"
+            style={{ minHeight: '200px' }}
+          >
+            {rowParticipants.map((id) => (
               <div
-                key={`grid_row_${i}`}
-                className="flex flex-row items-center justify-center w-full h-full gap-4"
+                key={`participant-${id}`}
+                className="flex-1 min-w-0"
               >
-                {participantIds
-                  .slice(i * perRow, (i + 1) * perRow)
-                  .map((participantId) => {
-                    return (
-                      <div
-                        key={`participant_container_${participantId}`}
-                        className="flex flex-1 items-center justify-center h-full w-full overflow-hidden rounded-xl p-1"
-                      >
-                        <MemoizedParticipant participantId={participantId} />
-                      </div>
-                    );
-                  })}
+                <MemoizedParticipant participantId={id} />
               </div>
-            );
-          }
-        )}
-      </div>
+            ))}
+            {/* Rellenar espacios vacíos para mantener grid uniforme */}
+            {rowParticipants.length < perRow && 
+              Array.from({ length: perRow - rowParticipants.length }).map((_, i) => (
+                <div key={`empty-${i}`} className="flex-1" />
+              ))
+            }
+          </div>
+        );
+      })}
     </div>
   );
 }
