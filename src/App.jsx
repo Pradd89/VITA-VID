@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Dashboard from './Dashboard';
+import UnirseSala from './UnirseSala';  // ✅ Sin carpeta pages, está en src/
 import { supabase } from './supabaseClient';
 
 export default function App() {
@@ -60,15 +62,34 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return <Login />;
-  }
-
   return (
-    <Dashboard 
-      medico={medicoDatos} 
-      onLogout={() => supabase.auth.signOut()} 
-      refrescarPerfil={() => session && fetchMedicoDatos(session.user.id)}
-    />
+    <BrowserRouter>
+      <Routes>
+        {/* Ruta pública para pacientes */}
+        <Route path="/unirse/:meetingId" element={<UnirseSala />} />
+        
+        {/* Ruta principal - si está autenticado va al Dashboard, si no al Login */}
+        <Route 
+          path="/" 
+          element={
+            session ? (
+              <Dashboard 
+                medico={medicoDatos} 
+                onLogout={() => supabase.auth.signOut()} 
+                refrescarPerfil={() => session && fetchMedicoDatos(session.user.id)}
+              />
+            ) : (
+              <Login onLogin={(user) => {
+                setSession({ user });
+                fetchMedicoDatos(user.id);
+              }} />
+            )
+          } 
+        />
+        
+        {/* Redirección para rutas no encontradas */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

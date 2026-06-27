@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_SUPABASE_URL": "https://tusupabase.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "tu_anon_key_aqui"
+  }
+}
