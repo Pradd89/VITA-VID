@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
-import CompartirEnlace from './CompartirEnlace';
+import { supabase } from "../../data/supabaseClient";
+import CompartirEnlace from "../components/CompartirEnlace";
 
 export default function HomeDashboard({ medico, lanzarAlerta, iniciarLlamada }) {
   const [citasHoy, setCitasHoy] = useState([]);

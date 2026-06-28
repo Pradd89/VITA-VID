@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabase } from "../../data/supabaseClient";
 
 export default function Configuracion({ medico, onProfileUpdate, lanzarAlerta }) {
   const [nombre, setNombre] = useState('');

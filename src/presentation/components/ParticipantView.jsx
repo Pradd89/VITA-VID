@@ -1,4 +1,4 @@
-// src/ParticipantView.jsx
+// src/components/ParticipantView.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useParticipant, VideoPlayer } from "@videosdk.live/react-sdk";
 
@@ -8,33 +8,48 @@ const ParticipantAudioPlayer = ({ participantId }) => {
 
   useEffect(() => {
     if (micRef.current) {
-      if (micOn && micStream) {
+      if (micOn && micStream && !isLocal) { // 🍏 No reproducimos si es local para evitar feedback/eco
         const mediaStream = new MediaStream();
         mediaStream.addTrack(micStream.track);
         micRef.current.srcObject = mediaStream;
+        
         micRef.current
           .play()
-          .catch((error) => console.error("Error al reproducir audio:", error));
+          .catch((error) => {
+            console.warn("⚠️ Autoplay de audio retenido por el móvil. Esperando interacción:", error);
+          });
       } else {
         micRef.current.srcObject = null;
       }
     }
-  }, [micStream, micOn]);
+  }, [micStream, micOn, isLocal]);
 
-  return <audio ref={micRef} autoPlay muted={isLocal} />;
+  // Si es el participante local, no renderizamos el elemento de audio
+  if (isLocal) return null;
+
+  return (
+    <audio 
+      ref={micRef} 
+      autoPlay 
+      playsInline // 🔑 Crucial para iOS Safari y Android Chrome
+      controls={false}
+      style={{ display: "none" }} 
+    />
+  );
 };
 
 export default function ParticipantView({ participantId }) {
   const { webcamOn, displayName, isLocal, mode } = useParticipant(participantId);
-  const [cargandoVideo, setCargandoVideo] = useState(true);
 
   if (mode !== "SEND_AND_RECV") return null;
 
   return (
-    <div className="h-full w-full bg-slate-950 relative overflow-hidden rounded-xl flex items-center justify-center min-h-[200px] border border-slate-800 shadow-inner">
+    <div className="h-full w-full bg-slate-950 relative overflow-hidden rounded-xl flex items-center justify-center min-h-[200px] border border-slate-800 shadow-inner flex-1">
       
+      {/* Reproductor de Audio Optimizado */}
       <ParticipantAudioPlayer participantId={participantId} />
 
+      {/* Renderizado de Video */}
       {webcamOn ? (
         <div className="w-full h-full">
           <VideoPlayer
@@ -62,6 +77,7 @@ export default function ParticipantView({ participantId }) {
         </div>
       )}
 
+      {/* Etiqueta con el Nombre */}
       <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-slate-800/60 px-3 py-1.5 rounded-full shadow-lg z-10">
         <span className={`w-1.5 h-1.5 rounded-full ${webcamOn ? "bg-emerald-500" : "bg-slate-500"}`}></span>
         <span className="text-white text-xs font-bold tracking-tight">
