@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './Login';
-import Dashboard from './Dashboard';
-import UnirseSala from './UnirseSala';  // ✅ Sin carpeta pages, está en src/
-import { supabase } from './supabaseClient';
+import Login from './presentation/screens/Login';
+import Dashboard from './presentation/screens/Dashboard';
+import UnirseSala from "./presentation/screens/UnirseSala";
+import { supabase } from './data/supabaseClient';
 
 export default function App() {
   const [session, setSession] = useState(null);

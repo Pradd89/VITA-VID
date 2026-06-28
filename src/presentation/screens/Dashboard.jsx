@@ -1,14 +1,14 @@
-// src/Dashboard.jsx
-import React, { useState } from 'react';
+// src/presentation/screens/Dashboard.jsx
+import React, { useState, useEffect } from 'react';
 import HomeDashboard from './HomeDashboard';
 import ProgramarCitas from './ProgramarCitas';
 import HistorialCitas from './HistorialCitas';
 import Configuracion from './Configuracion';
 import { MeetingProvider } from "@videosdk.live/react-sdk";
-import VideoCallContainer from "./VideoCallContainer";
+import VideoCallContainer from "../containers/VideoCallContainer";
 import LeaveScreen from "./LeaveScreen";
-import { createMeeting, getToken } from "./api";
-import { supabase } from './supabaseClient';
+import { createMeeting, getToken } from "../../data/api"; 
+import { supabase } from '../../data/supabaseClient';
 
 export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
   const [pestanaActiva, setPestanaActiva] = useState('dashboard');
@@ -22,33 +22,33 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
     setTimeout(() => setToast(prev => ({ ...prev, mostrar: false })), 4000);
   };
 
-  React.useEffect(() => {
+  // ✅ Cargar el token desde el módulo de API
+  useEffect(() => {
     const cargarToken = async () => {
-      const token = await getToken();
-      setVideoToken(token);
+      try {
+        const token = await getToken();
+        console.log("🔑 Token cargado desde api.js:", token?.slice(0, 20) + "...");
+        setVideoToken(token);
+      } catch (err) {
+        console.error("❌ Error al cargar el token de video:", err);
+      }
     };
     cargarToken();
   }, []);
 
   const obtenerNombreParticipante = () => {
     if (!medico) return "Usuario VITA";
-    const esDispositivoMovil = /Mobi|Android|iPhone|iPad|Tablet/i.test(navigator.userAgent);
-    if (esDispositivoMovil) {
-      return "Paciente (Tablet)";
-    }
     return medico.nombre_completo || "Dr. Lester Rugama";
   };
 
   const manejarConexionTelemedicina = async (citaId) => {
     lanzarAlerta("Generando canal de telemedicina seguro...", "info");
     
-    // Crear sala en VideoSDK
     const idSalaReal = await createMeeting();
     
     if (idSalaReal) {
       console.log("✅ Sala creada en VideoSDK:", idSalaReal);
       
-      // ✅ ACTUALIZAR LA CITA CON EL MEETING_ID REAL
       const { error } = await supabase
         .from('citas')
         .update({ 
@@ -73,10 +73,12 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
     }
   };
 
+  // ✅ Modificado para limpiar ordenadamente los estados de la videollamada al salir
   const manejarReingresoMeeting = (valor) => {
     setIsMeetingLeft(valor);
     if (valor === false) {
       setLlamadaActiva({ activa: false, meetingId: null });
+      setIsMeetingLeft(false);
     }
   };
 
@@ -86,29 +88,32 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
     }
 
     if (llamadaActiva.activa) {
-      if (isMeetingLeft) {
-        return <LeaveScreen setIsMeetingLeft={manejarReingresoMeeting} />;
-      }
-
       if (!videoToken) {
         return <div className="p-6 text-center text-slate-500">Cargando módulo de videollamada...</div>;
       }
 
+      // 🛡️ El MeetingProvider se queda MONTADO previniendo errores de WebSocket en hilos huérfanos
       return (
         <MeetingProvider
-  config={{
-    meetingId: llamadaActiva.meetingId,
-    micEnabled: true,
-    webcamEnabled: true,
-    name: obtenerNombreParticipante(),
-  }}
-  token={videoToken}
->
-  <VideoCallContainer onLeave={() => {
-    setIsMeetingLeft(true);
-    setLlamadaActiva({ activa: false, meetingId: null });
-  }} />
-</MeetingProvider>
+          config={{
+            meetingId: llamadaActiva.meetingId,
+            micEnabled: true,
+            webcamEnabled: true,
+            name: obtenerNombreParticipante(),
+          }}
+          token={videoToken}
+        >
+          {isMeetingLeft ? (
+            // Si el médico salió de la sesión, pintamos la pantalla de despedida DENTRO del Provider
+            <LeaveScreen setIsMeetingLeft={manejarReingresoMeeting} />
+          ) : (
+            // Si la sesión sigue en curso, mostramos la videollamada real
+           <VideoCallContainer 
+    meetingId={llamadaActiva.meetingId} 
+    onLeave={() => setIsMeetingLeft(true)} 
+  />
+          )}
+        </MeetingProvider>
       );
     }
 
@@ -130,6 +135,7 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50 relative">
+      {/* Sistema global de notificaciones Toast */}
       {toast.mostrar && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs font-bold w-80 transition-all duration-300 animate-slide-up ${
           toast.tipo === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
@@ -153,7 +159,8 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
         </div>
       )}
 
-      <aside className="w-64 bg-white border-r border-slate-100 p-4 flex flex-col justify-between">
+      {/* Sidebar Lateral */}
+      <aside className="w-64 bg-white border-r border-slate-100 p-4 flex flex-col justify-between select-none">
         <div className="space-y-6">
           <div className="flex items-center gap-2 px-2 py-4">
             <span className="text-red-500 text-xl">❤️</span>
@@ -169,9 +176,10 @@ export default function Dashboard({ medico, onLogout, refrescarPerfil }) {
         <button onClick={onLogout} className="w-full text-sm font-semibold text-rose-500 hover:bg-rose-50 p-3 rounded-xl text-left transition">🚪 Cerrar Sesión</button>
       </aside>
 
+      {/* Área Principal de la Aplicación */}
       <main className="flex-1 flex flex-col">
-        <header className="bg-white border-b border-slate-100 p-4 flex justify-between items-center px-8">
-          <div className="text-xs text-slate-400 font-medium">HOSPITAL SAN GABRIEL</div>
+        <header className="bg-white border-b border-slate-100 p-4 flex justify-between items-center px-8 select-none">
+          <div className="text-xs text-slate-400 font-black tracking-widest uppercase">HOSPITAL SAN GABRIEL</div>
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-xs font-bold text-slate-800">Hola, {medico?.nombre_completo || 'Cargando...'}</p>

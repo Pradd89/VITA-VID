@@ -1,6 +1,5 @@
-// src/ParticipantGrid.jsx
 import React from "react";
-import ParticipantView from "./ParticipantView";
+import ParticipantView from "../components/ParticipantView"; // RUTA CORREGIDA HACIA COMPONENTS
 
 const MemoizedParticipant = React.memo(
   ParticipantView,
@@ -12,20 +11,19 @@ const MemoizedParticipant = React.memo(
 export default function ParticipantGrid({ participantIds }) {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
 
-  // Distribución de la rejilla según cantidad de participantes
   let perRow;
   if (isMobile) {
     perRow = participantIds.length <= 2 ? 1 : 2;
   } else {
     if (participantIds.length === 1) perRow = 1;
     else if (participantIds.length === 2) perRow = 2;
-    else perRow = 2; // Máximo 2 columnas para mejor visibilidad
+    else perRow = 2;
   }
 
   const rows = Math.ceil(participantIds.length / perRow);
 
   return (
-    <div className="flex flex-col w-full h-full gap-3 p-2">
+    <div className="flex flex-col w-full h-full gap-3 p-2 flex-1">
       {Array.from({ length: rows }, (_, rowIndex) => {
         const start = rowIndex * perRow;
         const end = Math.min(start + perRow, participantIds.length);
@@ -38,14 +36,10 @@ export default function ParticipantGrid({ participantIds }) {
             style={{ minHeight: '200px' }}
           >
             {rowParticipants.map((id) => (
-              <div
-                key={`participant-${id}`}
-                className="flex-1 min-w-0"
-              >
+              <div key={`participant-${id}`} className="flex-1 min-w-0">
                 <MemoizedParticipant participantId={id} />
               </div>
             ))}
-            {/* Rellenar espacios vacíos para mantener grid uniforme */}
             {rowParticipants.length < perRow && 
               Array.from({ length: perRow - rowParticipants.length }).map((_, i) => (
                 <div key={`empty-${i}`} className="flex-1" />
